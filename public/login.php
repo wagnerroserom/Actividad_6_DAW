@@ -30,7 +30,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
         exit;
     } else {
-        $mensaje_error = "Credenciales incorrectas. Intente nuevamente.";
+        $mensaje_error = "Credenciales incorrectas. Por favor intente nuevamente.";
     }
 }
 ?>
@@ -51,28 +51,28 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             max-width: 380px;
             margin: 90px auto;
             background: white;
-            padding: 27px;
-            border-radius: 9px;
+            padding: 25px;
+            border-radius: 8px;
             box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
         }
         h2 {
             text-align: center;
-            margin-bottom: 17px;
+            margin-bottom: 15px;
         }
         input[type=email], input[type=password] {
             width: 100%;
-            padding: 13px;
-            margin-bottom: 13px;
+            padding: 10px;
+            margin-bottom: 12px;
             border: 1px solid #aaa;
-            border-radius: 7px;
+            border-radius: 5px;
         }
         button {
             width: 100%;
-            padding: 13px;
+            padding: 10px;
             background: #0066cc;
             border: none;
             color: white;
-            border-radius: 7px;
+            border-radius: 5px;
             font-size: 16px;
             cursor: pointer;
         }
@@ -82,7 +82,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         .error {
             color: red;
             text-align: center;
-            margin-bottom: 13px;
+            margin-bottom: 12px;
         }
     </style>
 </head>
