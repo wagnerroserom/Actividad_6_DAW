@@ -1,15 +1,15 @@
 <?php
-// CRUD para la gestión de los salones
+// CRUD para la gestión de los salones (Administrador)
 
 require_once "../includes/functions.php";
 require_once "../includes/auth.php";
 
-// Solo administradores
+// Restringir acceso solo a administradores
 soloAdmin();
 
 $mensaje = "";
 
-// Procesa la creación de salón
+/* CREAR UN NUEVO SALÓN */
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['crear'])) {
 
     $nombre = trim($_POST['nombre']);
@@ -21,11 +21,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['crear'])) {
         crearSalon($nombre, $descripcion, $capacidad, $precio);
         $mensaje = "El salón ha sido creado correctamente.";
     } else {
-        $mensaje = "Complete correctamente todos los campos por favor.";
+        $mensaje = "Complete correctamente todos los campos.";
     }
 }
 
-// Activar o desactivar un salón
+/* ACTIVAR O DESACTIVAR UN SALÓN */
 if (isset($_GET['accion'], $_GET['id']) && is_numeric($_GET['id'])) {
 
     $id = (int) $_GET['id'];
@@ -42,7 +42,7 @@ if (isset($_GET['accion'], $_GET['id']) && is_numeric($_GET['id'])) {
     exit;
 }
 
-// Obtener todos los salones
+/* OBTENER SALONES */
 $salones = obtenerTodosLosSalones();
 ?>
 
@@ -56,7 +56,6 @@ $salones = obtenerTodosLosSalones();
             font-family: Arial;
             background: #f4f4f4;
             margin: 0;
-            padding: 0;
         }
         header {
             background: #003366;
@@ -129,41 +128,5 @@ $salones = obtenerTodosLosSalones();
         <input type="text" name="nombre" placeholder="Nombre del salón" required>
         <textarea name="descripcion" placeholder="Descripción"></textarea>
         <input type="number" name="capacidad" placeholder="Capacidad" required>
-        <input type="number" step="0.01" name="precio" placeholder="Precio" required>
-        <button type="submit" name="crear">Crear salón</button>
-    </form>
-
-    <h3>Listado de salones</h3>
-
-    <table>
-        <tr>
-            <th>ID</th>
-            <th>Nombre</th>
-            <th>Capacidad</th>
-            <th>Precio</th>
-            <th>Estado</th>
-            <th>Acciones</th>
-        </tr>
-
-        <?php foreach ($salones as $salon): ?>
-            <tr>
-                <td><?= $salon['id_salon'] ?></td>
-                <td><?= htmlspecialchars($salon['nombre']) ?></td>
-                <td><?= $salon['capacidad'] ?></td>
-                <td>$<?= number_format($salon['precio'], 2) ?></td>
-                <td><?= $salon['activo'] ? 'Activo' : 'Inactivo' ?></td>
-                <td class="acciones">
-                    <?php if ($salon['activo']): ?>
-                        <a class="desactivar" href="?accion=desactivar&id=<?= $salon['id_salon'] ?>">Desactivar</a>
-                    <?php else: ?>
-                        <a class="activar" href="?accion=activar&id=<?= $salon['id_salon'] ?>">Activar</a>
-                    <?php endif; ?>
-                </td>
-            </tr>
-        <?php endforeach; ?>
-    </table>
-
-</div>
-
-</body>
-</html>
+        <input type="number" step="0.01" name="precio" placeholder="Precio por hora" required>
+        <button type="submit" nam
