@@ -1,5 +1,4 @@
 <?php
-// includes/config.php
 // Configuración general del sistema y conexión a base de datos
 
 $host = '127.0.0.1';
@@ -19,8 +18,7 @@ try {
         ]
     );
 } catch (PDOException $e) {
-    // Registra el error en un log sin mostrarlo al usuario
-    error_log("Error de conexión: " . $e->getMessage());
+    // Registra el error en un log sin mostrarlo al usuariO
     die("Error de conexión a la base de datos."); // mensaje genérico
 }
-?>
+

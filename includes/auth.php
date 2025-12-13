@@ -1,60 +1,54 @@
 <?php
 
-// Manejo de sesiones, login, logout y verificación de roles.
+// Funciones de autenticación y sesiones
 
-require_once __DIR__ . '/config.php';   // conexión PDO
-require_once __DIR__ . '/functions.php'; // funciones de negocio
+require_once __DIR__ . '/config.php';
 
-// Iniciar sesión siempre que este archivo sea llamado
+// Inicia la sesión solo si no existe
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-/* 1. Función para iniciar sesión (login) */
-
+/* Función de inicio de sesión */
 function login($correo, $contrasena)
 {
     global $pdo;
 
-    // Buscar usuario activo por correo
-    $sql = "SELECT * FROM usuarios WHERE correo = ? AND activo = 1 LIMIT 1";
-    $stmt = $pdo->prepare($sql);
+    // Busca al usuario activo por correo
+    $stmt = $pdo->prepare(
+        "SELECT * FROM usuarios WHERE correo = ? AND activo = 1 LIMIT 1"
+    );
     $stmt->execute([$correo]);
     $usuario = $stmt->fetch();
 
+    // Verifica la existencia del usuario
     if (!$usuario) {
         return false;
     }
 
-    // Validar contraseña con SHA-256
-    if (hash('sha256', $contrasena) !== $usuario['contrasena']) {
+    // Se verifica la contraseña hasheada
+    if (!password_verify($contrasena, $usuario['contrasena'])) {
         return false;
     }
 
-    // Regenerar sesión por seguridad
+    // Regenera el ID de sesión por seguridad
     session_regenerate_id(true);
 
-    // Guardar datos en sesión
+    // Guarda datos importantes en la sesión
     $_SESSION['id_usuario'] = $usuario['id_usuario'];
-    $_SESSION['tipo'] = $usuario['tipo'];
-    $_SESSION['nombre'] = $usuario['nombre_completo'];
+    $_SESSION['nombre']     = $usuario['nombre_completo'];
+    $_SESSION['tipo']       = $usuario['tipo'];
 
     return true;
 }
 
-
-
-/* 2. Se verifica si el usuario está autenticado */
-
+/* Verifica si hay un usuario logueado */
 function estaLogueado()
 {
     return isset($_SESSION['id_usuario']);
 }
 
-
-/* 3. Se restringe el acceso según rol */
-
-// Función sólo para administradores
+/* Restringe acceso solo a administradores */
 function soloAdmin()
 {
     if (!estaLogueado() || $_SESSION['tipo'] !== 'admin') {
@@ -63,7 +57,7 @@ function soloAdmin()
     }
 }
 
-// Función sólo para clientes
+/* Restringe acceso solo a clientes */
 function soloCliente()
 {
     if (!estaLogueado() || $_SESSION['tipo'] !== 'cliente') {
@@ -72,15 +66,11 @@ function soloCliente()
     }
 }
 
-
-/* 4. Función para cerrar sesión (logout) */
-
+/* Cierra la sesión del usuario */
 function logout()
 {
-    session_start();
     session_unset();
     session_destroy();
     header("Location: ../public/login.php");
     exit;
 }
-?>
