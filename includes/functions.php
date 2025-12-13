@@ -1,99 +1,97 @@
 <?php
 
-require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/config.php';
 
-/* 1. Se verifica si hay disponibilidad de salón */
+/* VALIDAR DISPONIBILIDAD DE SALÓN */
+
 function salonDisponible($id_salon, $fecha, $hora_inicio, $hora_fin)
 {
     global $pdo;
 
-    // Consulta para detectar solapamientos de horarios.
-    $sql = "SELECT COUNT(*) AS conflictos
+    $sql = "SELECT COUNT(*)
             FROM reservas
-            WHERE id_salon = :id_salon
-                AND fecha = :fecha
-                AND estado IN ('pendiente', 'confirmada')
-                AND NOT (hora_fin <= :hora_inicio OR hora_inicio >= :hora_fin)";
+            WHERE id_salon = ?
+            AND fecha = ?
+            AND estado IN ('pendiente', 'confirmada')
+            AND NOT (hora_fin <= ? OR hora_inicio >= ?)";
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute([
-        ':id_salon' => $id_salon,
-        ':fecha' => $fecha,
-        ':hora_inicio' => $hora_inicio,
-        ':hora_fin' => $hora_fin
+        $id_salon,
+        $fecha,
+        $hora_inicio,
+        $hora_fin
     ]);
 
     return $stmt->fetchColumn() == 0;
 }
 
-/* CRUD de salones */
-// Obtener todos los salones
-function obtenerSalones()
+/* FUNCIONES PARA GESTIÓN DE SALONES */
+
+function crearSalon($nombre, $descripcion, $capacidad, $precio, $imagen = 'default.jpg')
 {
     global $pdo;
-    $stmt = $pdo->query("SELECT * FROM salones ORDER BY nombre ASC");
+
+    $sql = "INSERT INTO salones
+            (nombre, descripcion, capacidad, precio_por_hora, imagen, disponible)
+            VALUES (?, ?, ?, ?, ?, 1)";
+
+    $stmt = $pdo->prepare($sql);
+    return $stmt->execute([
+        $nombre,
+        $descripcion,
+        $capacidad,
+        $precio,
+        $imagen
+    ]);
+}
+
+function obtenerTodosLosSalones()
+{
+    global $pdo;
+    $stmt = $pdo->query("SELECT * FROM salones ORDER BY id_salon DESC");
     return $stmt->fetchAll();
 }
 
-// Crear un nuevo salón
-function crearSalon($nombre, $descripcion, $capacidad, $precio)
+function obtenerSalonesDisponibles()
 {
     global $pdo;
-    $sql = "INSERT INTO salones (nombre, descripcion, capacidad, precio, activo)
-            VALUES (?, ?, ?, ?, 1)";
+    $stmt = $pdo->query("SELECT * FROM salones WHERE disponible = 1 ORDER BY nombre ASC");
+    return $stmt->fetchAll();
+}
+
+function actualizarEstadoSalon($id_salon, $estado)
+{
+    global $pdo;
+    $sql = "UPDATE salones SET disponible = ? WHERE id_salon = ?";
     $stmt = $pdo->prepare($sql);
-    return $stmt->execute([$nombre, $descripcion, $capacidad, $precio]);
+    return $stmt->execute([$estado, $id_salon]);
 }
 
-// Obtener datos de un salón específico
-function obtenerSalonPorId($id_salon)
-{
-    global $pdo;
-    $stmt = $pdo->prepare("SELECT * FROM salones WHERE id_salon = ?");
-    $stmt->execute([$id_salon]);
-    return $stmt->fetch();
-}
+/* FUNCIONES PARA GESTIÓN DE RESERVAS= */
 
-// Editar un salón
-function editarSalon($id_salon, $nombre, $descripcion, $capacidad, $precio)
-{
-    global $pdo;
-    $sql = "UPDATE salones
-            SET nombre=?, descripcion=?, capacidad=?, precio=?
-            WHERE id_salon=?";
-    $stmt = $pdo->prepare($sql);
-    return $stmt->execute([$nombre, $descripcion, $capacidad, $precio, $id_salon]);
-}
-
-// Activar o desactivar un salón
-function cambiarEstadoSalon($id_salon, $activo)
-{
-    global $pdo;
-    $sql = "UPDATE salones SET activo=? WHERE id_salon=?";
-    $stmt = $pdo->prepare($sql);
-    return $stmt->execute([$activo, $id_salon]);
-}
-
-/* CRUD de reservas (para cliente y admin) */
-// Crear la solicitud de reserva
-function crearReserva($id_salon, $id_usuario, $fecha, $hora_inicio, $hora_fin, $nombre_contacto, $telefono_contacto)
-{
+function crearReserva(
+    $id_salon,
+    $id_usuario,
+    $fecha,
+    $hora_inicio,
+    $hora_fin,
+    $nombre_contacto,
+    $telefono_contacto
+) {
     global $pdo;
 
-    // Iniciar la transacción para evitar doble reserva simultánea
     $pdo->beginTransaction();
 
     try {
-
-        // Validar la disponibilidad antes de insertar
         if (!salonDisponible($id_salon, $fecha, $hora_inicio, $hora_fin)) {
             $pdo->rollBack();
-            return false; // No disponible
+            return false;
         }
 
-        $sql = "INSERT INTO reservas 
-                (id_salon, id_usuario, fecha, hora_inicio, hora_fin, contacto_nombre, contacto_telefono, estado) 
+        $sql = "INSERT INTO reservas
+                (id_salon, id_usuario, fecha, hora_inicio, hora_fin,
+                    nombre_contacto, telefono_contacto, estado)
                 VALUES (?, ?, ?, ?, ?, ?, ?, 'pendiente')";
 
         $stmt = $pdo->prepare($sql);
@@ -112,99 +110,61 @@ function crearReserva($id_salon, $id_usuario, $fecha, $hora_inicio, $hora_fin, $
 
     } catch (Exception $e) {
         $pdo->rollBack();
-        error_log("Error en crearReserva(): " . $e->getMessage());
+        error_log("Error al crear reserva: " . $e->getMessage());
         return false;
     }
 }
 
-
-// Obtener las reservas, todas o filtradas por usuario
 function obtenerReservas($id_usuario = null)
 {
     global $pdo;
 
     if ($id_usuario) {
-        $stmt = $pdo->prepare("SELECT r.*, s.nombre AS salon
-                                FROM reservas r
-                                JOIN salones s ON r.id_salon = s.id_salon
-                                WHERE r.id_usuario = ?
-                                ORDER BY r.fecha DESC");
+        $stmt = $pdo->prepare(
+            "SELECT r.*, s.nombre AS salon
+                FROM reservas r
+                JOIN salones s ON r.id_salon = s.id_salon
+                WHERE r.id_usuario = ?
+                ORDER BY r.fecha DESC"
+        );
         $stmt->execute([$id_usuario]);
     } else {
-        $stmt = $pdo->query("SELECT r.*, s.nombre AS salon
-                                FROM reservas r
-                                JOIN salones s ON r.id_salon = s.id_salon
-                                ORDER BY r.fecha DESC");
+        $stmt = $pdo->query(
+            "SELECT r.*, s.nombre AS salon
+                FROM reservas r
+                JOIN salones s ON r.id_salon = s.id_salon
+                ORDER BY r.fecha DESC"
+        );
     }
 
     return $stmt->fetchAll();
 }
 
-// FUNCIONES PARA GESTIÓN DE SALONES (ADMIN)
+function obtenerTodasLasReservas()
+{
+    global $pdo;
 
-/**
- * Se obtienen todos los salones (activos e inactivos)
- */
-function obtenerTodosLosSalones() {
-    $conn = conectarBD();
+    $sql = "SELECT r.id_reserva,
+                s.nombre AS salon,
+                u.nombre_completo AS cliente,
+                r.fecha,
+                r.hora_inicio,
+                r.hora_fin,
+                r.nombre_contacto,
+                r.telefono_contacto,
+                r.estado
+            FROM reservas r
+            JOIN salones s ON r.id_salon = s.id_salon
+            JOIN usuarios u ON r.id_usuario = u.id_usuario
+            ORDER BY r.fecha DESC";
 
-    $sql = "SELECT * FROM salones ORDER BY id_salon DESC";
-    $stmt = $conn->prepare($sql);
-    $stmt->execute();
-
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
-}
-
-/**
- * Actualiza el estado de un salón (activar / desactivar)
- */
-function actualizarEstadoSalon($id_salon, $estado) {
-    $conn = conectarBD();
-
-    $sql = "UPDATE salones SET activo = ? WHERE id_salon = ?";
-    $stmt = $conn->prepare($sql);
-    return $stmt->execute([$estado, $id_salon]);
-}
-
-// FUNCIONES PARA GESTIÓN DE RESERVAS (ADMIN)
-
-/**
- * Se obtienen todas las reservas con información relacionada
- */
-function obtenerTodasLasReservas() {
-    $conn = conectarBD();
-
-    $sql = "
-        SELECT r.id_reserva,
-            s.nombre AS salon,
-            u.nombre AS cliente,
-            r.fecha,
-            r.hora_inicio,
-            r.hora_fin,
-            r.nombre_contacto,
-            r.telefono_contacto,
-            r.estado
-        FROM reservas r
-        INNER JOIN salones s ON r.id_salon = s.id_salon
-        INNER JOIN usuarios u ON r.id_usuario = u.id_usuario
-        ORDER BY r.fecha DESC
-    ";
-
-    $stmt = $conn->prepare($sql);
-    $stmt->execute();
-
+    $stmt = $pdo->query($sql);
     return $stmt->fetchAll();
 }
 
-/**
- * Actualiza el estado de una reserva
- */
-function actualizarEstadoReserva($id_reserva, $estado) {
-    $conn = conectarBD();
-
-    $sql = "UPDATE reservas SET estado = ? WHERE id_reserva = ?";
-    $stmt = $conn->prepare($sql);
-
+function actualizarEstadoReserva($id_reserva, $estado)
+{
+    global $pdo;
+    $stmt = $pdo->prepare("UPDATE reservas SET estado = ? WHERE id_reserva = ?");
     return $stmt->execute([$estado, $id_reserva]);
 }
-
