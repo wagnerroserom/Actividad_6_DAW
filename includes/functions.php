@@ -140,20 +140,10 @@ function obtenerReservas($id_usuario = null)
     return $stmt->fetchAll();
 }
 
-// Cambiar el estado de una reserva (admin)
-function actualizarEstadoReserva($id_reserva, $nuevo_estado)
-{
-    global $pdo;
-
-    $sql = "UPDATE reservas SET estado=? WHERE id_reserva=?";
-    $stmt = $pdo->prepare($sql);
-    return $stmt->execute([$nuevo_estado, $id_reserva]);
-}
-
 // FUNCIONES PARA GESTIÓN DE SALONES (ADMIN)
 
 /**
- * Obtiene todos los salones (activos e inactivos)
+ * Se obtienen todos los salones (activos e inactivos)
  */
 function obtenerTodosLosSalones() {
     $conn = conectarBD();
@@ -174,5 +164,47 @@ function actualizarEstadoSalon($id_salon, $estado) {
     $sql = "UPDATE salones SET activo = ? WHERE id_salon = ?";
     $stmt = $conn->prepare($sql);
     return $stmt->execute([$estado, $id_salon]);
+}
+
+// FUNCIONES PARA GESTIÓN DE RESERVAS (ADMIN)
+
+/**
+ * Se obtienen todas las reservas con información relacionada
+ */
+function obtenerTodasLasReservas() {
+    $conn = conectarBD();
+
+    $sql = "
+        SELECT r.id_reserva,
+            s.nombre AS salon,
+            u.nombre AS cliente,
+            r.fecha,
+            r.hora_inicio,
+            r.hora_fin,
+            r.nombre_contacto,
+            r.telefono_contacto,
+            r.estado
+        FROM reservas r
+        INNER JOIN salones s ON r.id_salon = s.id_salon
+        INNER JOIN usuarios u ON r.id_usuario = u.id_usuario
+        ORDER BY r.fecha DESC
+    ";
+
+    $stmt = $conn->prepare($sql);
+    $stmt->execute();
+
+    return $stmt->fetchAll();
+}
+
+/**
+ * Actualiza el estado de una reserva
+ */
+function actualizarEstadoReserva($id_reserva, $estado) {
+    $conn = conectarBD();
+
+    $sql = "UPDATE reservas SET estado = ? WHERE id_reserva = ?";
+    $stmt = $conn->prepare($sql);
+
+    return $stmt->execute([$estado, $id_reserva]);
 }
 

@@ -16,32 +16,32 @@ function login($correo, $contrasena)
 {
     global $pdo;
 
-    // Se busca el usuario por correo
+    // Buscar usuario activo por correo
     $sql = "SELECT * FROM usuarios WHERE correo = ? AND activo = 1 LIMIT 1";
     $stmt = $pdo->prepare($sql);
     $stmt->execute([$correo]);
     $usuario = $stmt->fetch();
 
-    // Se valida existencia
     if (!$usuario) {
         return false;
     }
 
-    // Se valida la contraseña
-    if (!password_verify($contrasena, $usuario['contrasena'])) {
+    // Validar contraseña con SHA-256
+    if (hash('sha256', $contrasena) !== $usuario['contrasena']) {
         return false;
     }
 
-    // Se regenera ID de sesión por seguridad
+    // Regenerar sesión por seguridad
     session_regenerate_id(true);
 
-    // Guarda  en la sesión
+    // Guardar datos en sesión
     $_SESSION['id_usuario'] = $usuario['id_usuario'];
     $_SESSION['tipo'] = $usuario['tipo'];
     $_SESSION['nombre'] = $usuario['nombre_completo'];
 
     return true;
 }
+
 
 
 /* 2. Se verifica si el usuario está autenticado */
