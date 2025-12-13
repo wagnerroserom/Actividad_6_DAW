@@ -1,5 +1,6 @@
 <?php
 
+require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/config.php';
 
 /* 1. Se verifica si hay disponibilidad de salón */
@@ -148,4 +149,30 @@ function actualizarEstadoReserva($id_reserva, $nuevo_estado)
     $stmt = $pdo->prepare($sql);
     return $stmt->execute([$nuevo_estado, $id_reserva]);
 }
-?>
+
+// FUNCIONES PARA GESTIÓN DE SALONES (ADMIN)
+
+/**
+ * Obtiene todos los salones (activos e inactivos)
+ */
+function obtenerTodosLosSalones() {
+    $conn = conectarBD();
+
+    $sql = "SELECT * FROM salones ORDER BY id_salon DESC";
+    $stmt = $conn->prepare($sql);
+    $stmt->execute();
+
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+/**
+ * Actualiza el estado de un salón (activar / desactivar)
+ */
+function actualizarEstadoSalon($id_salon, $estado) {
+    $conn = conectarBD();
+
+    $sql = "UPDATE salones SET activo = ? WHERE id_salon = ?";
+    $stmt = $conn->prepare($sql);
+    return $stmt->execute([$estado, $id_salon]);
+}
+
