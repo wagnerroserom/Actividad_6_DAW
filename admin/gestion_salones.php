@@ -124,9 +124,45 @@ $salones = obtenerTodosLosSalones();
         <p><?= htmlspecialchars($mensaje) ?></p>
     <?php endif; ?>
 
-    <form method="POST">
+<form method="POST">
         <input type="text" name="nombre" placeholder="Nombre del salón" required>
         <textarea name="descripcion" placeholder="Descripción"></textarea>
         <input type="number" name="capacidad" placeholder="Capacidad" required>
         <input type="number" step="0.01" name="precio" placeholder="Precio por hora" required>
-        <button type="submit" nam
+        <button type="submit" name="crear">Crear salón</button>
+    </form>
+
+    <h3>Listado de salones</h3>
+
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Capacidad</th>
+            <th>Precio</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+        </tr>
+
+        <?php foreach ($salones as $salon): ?>
+            <tr>
+                <td><?= $salon['id_salon'] ?></td>
+                <td><?= htmlspecialchars($salon['nombre']) ?></td>
+                <td><?= $salon['capacidad'] ?></td>
+                <td>$<?= number_format($salon['precio_por_hora'], 2) ?></td>
+                <td><?= $salon['disponible'] ? 'Activo' : 'Inactivo' ?></td>
+                <td class="acciones">
+                    <?php if ($salon['disponible']): ?>
+                        <a class="desactivar" href="?accion=desactivar&id=<?= $salon['id_salon'] ?>">Desactivar</a>
+                    <?php else: ?>
+                        <a class="activar" href="?accion=activar&id=<?= $salon['id_salon'] ?>">Activar</a>
+                    <?php endif; ?>
+                </td>
+            </tr>
+        <?php endforeach; ?>
+    </table>
+
+</div>
+
+</body>
+</html>   
